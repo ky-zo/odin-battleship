@@ -6,10 +6,10 @@
 #     code package.json
 
 # 3. Add these scripts to scripts part: 
-#         "test": "jest --coverage",
-#         "watch": "webpack --watch",
-#         "build": "webpack",
-#         "start": "webpack serve --open"
+        # "test": "jest --coverage",
+        # "watch": "webpack --watch",
+        # "build": "webpack",
+        # "start": "webpack serve --open"
 #!/bin/bash
 
 npm init -y
