@@ -102,3 +102,32 @@ li {
     font-size: 1.8rem;
     font-weight: 600;
 }
+
+#game-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.grid {
+    border: 2px black solid;
+    transition: 300ms;
+}
+
+.active-board {
+    border: 2px green solid;
+    background-color: rgba(0, 255, 0, 0.084);
+    transition: 300ms;
+    scale: 1.05;
+}
+
+.player1,
+.player2 {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.placing-info {
+    font-weight: 600;
+}

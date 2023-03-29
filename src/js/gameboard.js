@@ -6,36 +6,27 @@ export default class Gameboard {
         this.ships = ships
     }
 
-    place(x, y, length, directionVertical) {
+    canShipBePlaced(x, y, length, directionVertical) {
+        if ((directionVertical && x + length > this.board.length) || (!directionVertical && y + length > this.board.length)) {
+            return false
+        }
+
+        // Check if the cells are empty
         for (let i = 0; i < length; i++) {
             if (directionVertical) {
-                if (x + length > this.board.length || this.board[x + i][y] !== 0) {
+                if (this.board[x + i][y] !== 0) {
                     return false
                 }
-                // Check for adjacent cells
-                if (
-                    (y > 0 && this.board[x + i][y - 1] !== 0) ||
-                    (y < this.board.length - 1 && this.board[x + i][y + 1] !== 0) ||
-                    (i > 0 && this.board[x + i - 1][y] !== 0) ||
-                    (i < length - 1 && this.board[x + i + 1][y] !== 0)
-                ) {
-                    return false
-                }
-            } else {
-                if (y + length > this.board.length || this.board[x][y + i] !== 0) {
-                    return false
-                }
-                // Check for adjacent cells
-                if (
-                    (x > 0 && this.board[x - 1][y + i] !== 0) ||
-                    (x < this.board.length - 1 && this.board[x + 1][y + i] !== 0) ||
-                    (i > 0 && this.board[x][y + i - 1] !== 0) ||
-                    (i < length - 1 && this.board[x][y + i + 1] !== 0)
-                ) {
-                    return false
-                }
+            } else if (this.board[x][y + i] !== 0) {
+                return false
             }
         }
+        return true
+    }
+
+    place(x, y, length, directionVertical) {
+        if (!this.canShipBePlaced(x, y, length, directionVertical)) return
+
         this.board[x][y] = new Ship(length)
         this.blockAdjacentCells(x, y, length, directionVertical)
         this.ships.push(this.board[x][y])
@@ -58,7 +49,7 @@ export default class Gameboard {
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
                 if (this.board[row][col] === 0) {
-                    this.board[row][col] = 'B' // Blocking with -1
+                    this.board[row][col] = 'B' // Blocking with B
                 }
             }
         }
@@ -68,11 +59,12 @@ export default class Gameboard {
         if (this.board[x][y].constructor.name === 'Ship') {
             console.log('test')
             this.board[x][y].hit()
-            const sunkStatus = this.board[x][y].sunk
+            // const sunkStatus = this.board[x][y].sunk
             this.board[x][y] = 'X'
-            return sunkStatus
+            return true
         }
         this.board[x][y] = 'M'
+        return false
     }
 
     isFinished() {

@@ -29,13 +29,49 @@ export default class Game {
             for (let j = 0; j < this.player1.gameboard.board[i].length; j++) {
                 const cell = document.createElement('div')
                 cell.className = `cell r${i} c${j}`
-                cell.addEventListener(
-                    'click',
-                    () => {
-                        this.placeShip(i, j)
-                    },
-                    { once: true }
-                )
+                cell.addEventListener('mouseover', () => {
+                    if (this.getNextShipsIndex() >= 0) {
+                        const shipLength = shipsData[this.getNextShipsIndex()].length
+                        const shipDirection = this.getShipsDirection()
+                        if (this.player1.gameboard.canShipBePlaced(i, j, shipLength, shipDirection)) {
+                            cell.addEventListener(
+                                'click',
+                                () => {
+                                    this.placeShip(i, j)
+                                },
+                                { once: true }
+                            )
+                            const shipPlaceholder = []
+                            if (this.getShipsDirection()) {
+                                for (let k = 0; k < shipLength; k++) {
+                                    shipPlaceholder.push(document.querySelector(`.cell.r${i + k}.c${j}`))
+                                    console.log(shipPlaceholder)
+                                    shipPlaceholder.forEach((element) => {
+                                        element.classList.add('available')
+                                    })
+                                    cell.addEventListener('mouseleave', () => {
+                                        shipPlaceholder.forEach((element) => {
+                                            element.classList.remove('available')
+                                        })
+                                    })
+                                }
+                            } else {
+                                for (let k = 0; k < shipLength; k++) {
+                                    shipPlaceholder.push(document.querySelector(`.cell.r${i}.c${j + k}`))
+                                    console.log(shipPlaceholder)
+                                    shipPlaceholder.forEach((element) => {
+                                        element.classList.add('available')
+                                    })
+                                    cell.addEventListener('mouseleave', () => {
+                                        shipPlaceholder.forEach((element) => {
+                                            element.classList.remove('available')
+                                        })
+                                    })
+                                }
+                            }
+                        }
+                    }
+                })
 
                 gameGrid1.appendChild(cell)
 
@@ -112,13 +148,15 @@ export default class Game {
     }
 
     gameLoop(i, j) {
-        // this.currentPlayer.nextMove(i, j) ????
         if (this.player1.gameboard.ships.length < 5) return
         if (this.isGameOver()) return
-        this.switchPlayers()
-        this.currentPlayer.gameboard.receiveAttack(i, j)
+
+        if (!this.opponent.gameboard.receiveAttack(i, j)) {
+            this.switchPlayers()
+        }
         this.updateShips()
         this.boardsUpdate()
+
         setTimeout(() => {
             if (this.currentPlayer.ai) {
                 const [aiMoveI, aiMoveJ] = this.generateAIMove() // Implement this function to generate AI moves
@@ -133,20 +171,29 @@ export default class Game {
         turn.textContent = `Turn: ${this.currentPlayer.name}`
     }
 
+    getShipsDirection() {
+        const orientation = document.querySelector('#orientation')
+        if (orientation.textContent === 'Horizontally') {
+            return false
+        }
+        return true
+    }
+
+    getNextShipsIndex() {
+        return shipsData.findIndex((ship) => !ship.placed)
+    }
+
     placeShip(i, j) {
         if (this.player1.gameboard.ships.length === 5) return
 
-        const firstNotPlacedIndex = shipsData.findIndex((ship) => !ship.placed)
-        let direction = ''
+        const firstNotPlacedIndex = this.getNextShipsIndex()
 
-        const orientation = document.querySelector('#orientation')
-        if (orientation.textContent === 'Horizontally') {
-            direction = false
-        } else {
-            direction = true
-        }
-
-        shipsData[firstNotPlacedIndex].placed = this.player1.gameboard.place(i, j, shipsData[firstNotPlacedIndex].length, direction)
+        shipsData[firstNotPlacedIndex].placed = this.player1.gameboard.place(
+            i,
+            j,
+            shipsData[firstNotPlacedIndex].length,
+            this.getShipsDirection()
+        )
 
         this.updateShips()
         this.boardsUpdate()
@@ -155,6 +202,42 @@ export default class Game {
             info.textContent = '🚀 Play the game! 🚀'
             const placing = document.querySelector('.placing')
             placing.textContent = ''
+            const player1board = document.querySelector('#player1')
+            player1board.classList.remove('active-board')
+            const player2board = document.querySelector('#player2')
+            player2board.classList.add('active-board')
+        }
+    }
+
+    highlightAvailableCells(i, j, direction, length) {
+        for (let k = 0; k < length; k++) {
+            let x = i
+            let y = j
+            if (direction) {
+                x += k
+            } else {
+                y += k
+            }
+            if (x < this.player1.gameboard.board.length && y < this.player1.gameboard.board[i].length) {
+                const cell = document.querySelector(`.cell.r${x}.c${y}`)
+                cell.classList.add('available')
+            }
+        }
+    }
+
+    removeHighlight(i, j, direction, length) {
+        for (let k = 0; k < length; k++) {
+            let x = i
+            let y = j
+            if (direction) {
+                x += k
+            } else {
+                y += k
+            }
+            if (x < this.player1.gameboard.board.length && y < this.player1.gameboard.board[i].length) {
+                const cell = document.querySelector(`.cell.r${x}.c${y}`)
+                cell.classList.remove('available')
+            }
         }
     }
 
