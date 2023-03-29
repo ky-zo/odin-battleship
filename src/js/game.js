@@ -14,6 +14,8 @@ export default class Game {
         this.player2 = new Player(player2, true)
         this.currentPlayer = this.player1
         this.opponent = this.player2
+        this.lastAIMoveHit = false
+        this.AImovesQueue = []
     }
 
     gameStart() {
@@ -45,7 +47,6 @@ export default class Game {
                             if (this.getShipsDirection()) {
                                 for (let k = 0; k < shipLength; k++) {
                                     shipPlaceholder.push(document.querySelector(`.cell.r${i + k}.c${j}`))
-                                    console.log(shipPlaceholder)
                                     shipPlaceholder.forEach((element) => {
                                         element.classList.add('available')
                                     })
@@ -58,7 +59,6 @@ export default class Game {
                             } else {
                                 for (let k = 0; k < shipLength; k++) {
                                     shipPlaceholder.push(document.querySelector(`.cell.r${i}.c${j + k}`))
-                                    console.log(shipPlaceholder)
                                     shipPlaceholder.forEach((element) => {
                                         element.classList.add('available')
                                     })
@@ -151,18 +151,107 @@ export default class Game {
         if (this.player1.gameboard.ships.length < 5) return
         if (this.isGameOver()) return
 
-        if (!this.opponent.gameboard.receiveAttack(i, j)) {
+        console.log(`Current player: ${this.currentPlayer.name} played ${i} ${j}`)
+
+        const roundResult = this.opponent.gameboard.receiveAttack(i, j)
+
+        if (!roundResult) {
             this.switchPlayers()
+            this.lastAIMoveHit = false
+        } else if (this.opponent.name === 'User') {
+            this.lastAIMoveHit = true
+            this.AImovesQueue = this.createAIsmartMove(i, j)
+            console.log(this.AImovesQueue)
         }
+
         this.updateShips()
         this.boardsUpdate()
 
-        setTimeout(() => {
-            if (this.currentPlayer.ai) {
-                const [aiMoveI, aiMoveJ] = this.generateAIMove() // Implement this function to generate AI moves
+        if (this.currentPlayer.ai) {
+            const cellsToDisable = document.querySelectorAll('#player2 > .cell')
+            cellsToDisable.forEach((cell) => cell.classList.add('disable'))
+            setTimeout(() => {
+                const [aiMoveI, aiMoveJ] = this.generateAIMove()
                 this.gameLoop(aiMoveI, aiMoveJ)
+
+                cellsToDisable.forEach((cell) => cell.classList.remove('disable'))
+            }, 100)
+        }
+    }
+
+    createAIsmartMove(i, j) {
+        const directions = [
+            [-1, 0], // Up
+            [1, 0], // Down
+            [0, -1], // Left
+            [0, 1], // Right
+        ]
+
+        const possibleDirections = directions.filter(([di, dj]) => {
+            const prevX = i - di
+            const prevY = j - dj
+            return prevX >= 0 && prevX < 10 && prevY >= 0 && prevY < 10 && this.opponent.gameboard.board[prevX][prevY] === 'X'
+        })
+
+        let moves
+        if (possibleDirections.length === 0) {
+            // No direction found, use all directions
+            moves = directions.map(([di, dj]) => [i + di, j + dj])
+        } else {
+            // One direction found, use only that direction and its opposite
+            const [di, dj] = possibleDirections[0]
+            moves = [
+                [i + di, j + dj],
+                [i - di, j - dj],
+            ]
+
+            // Check if we need to explore the other direction
+            const newX = i + di
+            const newY = j + dj
+            if (newX >= 0 && newX < 10 && newY >= 0 && newY < 10 && this.opponent.gameboard.board[newX][newY] !== 'X') {
+                moves.push([i + 2 * di, j + 2 * dj])
             }
-        }, 250)
+
+            // Add the other two directions if the AI has only hit one cell in the ship
+            const remainingDirections = directions.filter(([dirI, dirJ]) => dirI !== di && dirJ !== dj)
+            remainingDirections.forEach(([dirI, dirJ]) => {
+                const x = i + dirI
+                const y = j + dirJ
+                if (
+                    x >= 0 &&
+                    x < 10 &&
+                    y >= 0 &&
+                    y < 10 &&
+                    this.opponent.gameboard.board[x][y] !== 'M' &&
+                    this.opponent.gameboard.board[x][y] !== 'X'
+                ) {
+                    moves.push([x, y])
+                }
+            })
+        }
+
+        const validMoves = moves.filter(([x, y]) => x >= 0 && x < 10 && y >= 0 && y < 10)
+        const unexploredMoves = validMoves.filter(
+            ([x, y]) => this.opponent.gameboard.board[x][y] !== 'M' && this.opponent.gameboard.board[x][y] !== 'X'
+        )
+
+        return unexploredMoves
+    }
+
+    generateAIMove() {
+        console.log(this.AImovesQueue.length)
+        if (this.AImovesQueue.length > 0) {
+            const nextMove = this.AImovesQueue.shift()
+            return nextMove
+        }
+        let moveI
+        let moveJ
+        do {
+            moveI = Math.floor(Math.random() * this.opponent.gameboard.board.length)
+            moveJ = Math.floor(Math.random() * this.opponent.gameboard.board.length)
+        } while (this.opponent.gameboard.board[moveI][moveJ] === 'M' || this.opponent.gameboard.board[moveI][moveJ] === 'X')
+
+        return [moveI, moveJ]
     }
 
     switchPlayers() {
@@ -243,17 +332,6 @@ export default class Game {
 
     shipsSetup() {
         this.placeRandomShips(this.player2.gameboard, shipsData)
-    }
-
-    generateAIMove() {
-        let moveI
-        let moveJ
-        do {
-            moveI = Math.floor(Math.random() * this.opponent.gameboard.board.length)
-            moveJ = Math.floor(Math.random() * this.opponent.gameboard.board.length)
-        } while (this.opponent.gameboard.board[moveI][moveJ] === 'M' || this.opponent.gameboard.board[moveI][moveJ] === 'X')
-
-        return [moveI, moveJ]
     }
 
     updateShips() {

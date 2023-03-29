@@ -57,7 +57,6 @@ export default class Gameboard {
 
     receiveAttack(x, y) {
         if (this.board[x][y].constructor.name === 'Ship') {
-            console.log('test')
             this.board[x][y].hit()
             // const sunkStatus = this.board[x][y].sunk
             this.board[x][y] = 'X'
