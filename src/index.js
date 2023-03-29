@@ -16,3 +16,9 @@ theGame.gameStart()
         }
     })
 })()
+;(function makePlayersBoardBigandGreen() {
+    const board = document.querySelector('#player1')
+    setTimeout(() => {
+        board.classList.add(`active-board`)
+    }, 750)
+})()
