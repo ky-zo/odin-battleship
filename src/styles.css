@@ -97,3 +97,8 @@ li {
     background-color: lightblue;
     cursor: default;
 }
+
+#info {
+    font-size: 1.8rem;
+    font-weight: 600;
+}

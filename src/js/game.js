@@ -1,5 +1,13 @@
 import Player from './player'
 
+const shipsData = [
+    { length: 5, count: 1 },
+    { length: 4, count: 1 },
+    { length: 3, count: 1 },
+    { length: 2, count: 1 },
+    { length: 1, count: 1 },
+]
+
 export default class Game {
     constructor(player1, player2) {
         this.player1 = new Player(player1)
@@ -9,7 +17,7 @@ export default class Game {
     }
 
     gameStart() {
-        this.shipsSetup() // Sample ships. To be deleted later.
+        this.shipsSetup() // AI ship setup
         const turn = document.querySelector('#turn-display')
         turn.textContent = `Turn: ${this.currentPlayer.name}`
         const gameGrid1 = document.querySelector('.player1>.grid')
@@ -20,10 +28,19 @@ export default class Game {
         for (let i = 0; i < this.player1.gameboard.board.length; i++) {
             for (let j = 0; j < this.player1.gameboard.board[i].length; j++) {
                 const cell = document.createElement('div')
-                const cell2 = document.createElement('div')
                 cell.className = `cell r${i} c${j}`
-                cell2.className = `cell r${i} c${j}`
+                cell.addEventListener(
+                    'click',
+                    () => {
+                        this.placeShip(i, j)
+                    },
+                    { once: true }
+                )
 
+                gameGrid1.appendChild(cell)
+
+                const cell2 = document.createElement('div')
+                cell2.className = `cell r${i} c${j}`
                 cell2.addEventListener(
                     'click',
                     () => {
@@ -37,8 +54,6 @@ export default class Game {
                 cell2.addEventListener('mouseleave', () => {
                     cell2.classList.remove('available')
                 })
-
-                gameGrid1.appendChild(cell)
                 gameGrid2.appendChild(cell2)
             }
         }
@@ -90,7 +105,7 @@ export default class Game {
         if (player1Lost || player2Lost) {
             const winner = player1Lost ? this.player2.name : this.player1.name
             const info = document.querySelector('#info')
-            info.textContent = `The Winner is: ${winner}`
+            info.textContent = `🙌 ${winner} won the game!🙌`
             return true
         }
         return false
@@ -98,6 +113,7 @@ export default class Game {
 
     gameLoop(i, j) {
         // this.currentPlayer.nextMove(i, j) ????
+        if (this.player1.gameboard.ships.length < 5) return
         if (this.isGameOver()) return
         this.switchPlayers()
         this.currentPlayer.gameboard.receiveAttack(i, j)
@@ -117,21 +133,32 @@ export default class Game {
         turn.textContent = `Turn: ${this.currentPlayer.name}`
     }
 
+    placeShip(i, j) {
+        if (this.player1.gameboard.ships.length === 5) return
+
+        const firstNotPlacedIndex = shipsData.findIndex((ship) => !ship.placed)
+        let direction = ''
+
+        const orientation = document.querySelector('#orientation')
+        if (orientation.textContent === 'Horizontally') {
+            direction = false
+        } else {
+            direction = true
+        }
+
+        shipsData[firstNotPlacedIndex].placed = this.player1.gameboard.place(i, j, shipsData[firstNotPlacedIndex].length, direction)
+
+        this.updateShips()
+        this.boardsUpdate()
+        if (this.player1.gameboard.ships.length === 5) {
+            const info = document.querySelector('#info')
+            info.textContent = '🚀 Play the game! 🚀'
+            const placing = document.querySelector('.placing')
+            placing.textContent = ''
+        }
+    }
+
     shipsSetup() {
-        // To be killed later
-        this.player1.gameboard.place(2, 3, 4, true)
-        this.player1.gameboard.place(7, 2, 3, false)
-        this.player1.gameboard.place(0, 9, 2, true)
-        this.player1.gameboard.place(6, 6, 1, true)
-
-        const shipsData = [
-            { length: 5, count: 1 },
-            { length: 4, count: 1 },
-            { length: 3, count: 1 },
-            { length: 2, count: 1 },
-            { length: 1, count: 1 },
-        ]
-
         this.placeRandomShips(this.player2.gameboard, shipsData)
     }
 
@@ -155,12 +182,12 @@ export default class Game {
 
         this.player1.gameboard.ships.forEach((ship, index) => {
             const listItem = document.createElement('li')
-            listItem.textContent = `Ship ${index + 1}: Length ${ship.length}, Hits ${ship.hitCount}, Sunk ${ship.sunk}`
+            listItem.textContent = `🚢 ${index + 1}: Size: ${ship.length}, Hit: ${ship.hitCount}, Dead: ${ship.sunk}`
             shipList1.appendChild(listItem)
         })
         this.player2.gameboard.ships.forEach((ship, index) => {
             const listItem = document.createElement('li')
-            listItem.textContent = `Ship ${index + 1}: Length ${ship.length}, Hits ${ship.hitCount}, Sunk ${ship.sunk}`
+            listItem.textContent = `🚢 ${index + 1}: Size: ${ship.length}, Hit: ${ship.hitCount}, Dead: ${ship.sunk}`
             shipList2.appendChild(listItem)
         })
     }
@@ -194,15 +221,15 @@ export default class Game {
             let placed = false
 
             while (!placed) {
-                const x = this.getRandomInt(0, this.player2.gameboard.board.length - 1)
-                const y = this.getRandomInt(0, this.player2.gameboard.board.length - 1)
+                const x = this.getRandomInt(0, gameboard.board.length - 1)
+                const y = this.getRandomInt(0, gameboard.board.length - 1)
                 const directionVertical = Math.random() < 0.5
 
                 const shipLength = shipData.length
                 const shipCount = shipData.count
 
                 for (let i = 0; i < shipCount; i++) {
-                    if (this.player2.gameboard.place(x, y, shipLength, directionVertical)) {
+                    if (gameboard.place(x, y, shipLength, directionVertical)) {
                         placed = true
                     }
                 }
